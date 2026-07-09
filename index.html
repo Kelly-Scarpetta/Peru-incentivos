@@ -94,7 +94,7 @@ textarea.inp{resize:vertical;min-height:80px}
 .btn-share:hover{background:var(--green)}
 
 /* ── TIPO SELECTOR ── */
-.tipo-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.35rem}
+.tipo-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.75rem;margin-top:.35rem}
 .tipo-card{background:#fff;border:2px solid var(--border);border-radius:var(--rsm);padding:1rem;text-align:center;cursor:pointer;transition:all .2s}
 .tipo-card:hover{border-color:var(--green);background:rgba(0,166,81,0.05)}
 .tipo-card.selected{border-color:var(--green);background:rgba(0,166,81,0.08)}
@@ -359,6 +359,10 @@ textarea.inp{resize:vertical;min-height:80px}
           <div class="tipo-card" id="tc-perdida" onclick="selTipo('Pérdida','perdida')">
             <i class="fa fa-circle-question" style="color:#E8A020"></i>
             <span>Pérdida</span>
+          </div>
+          <div class="tipo-card" id="tc-activacion" onclick="selTipo('Activación de Tarjeta','activacion')">
+            <i class="fa fa-credit-card" style="color:#2A8A94"></i>
+            <span>Activación<br>de Tarjeta</span>
           </div>
         </div>
       </div>
