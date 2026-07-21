@@ -404,7 +404,7 @@ textarea.inp{resize:vertical;min-height:80px}
         <label class="file-label" for="i-file">
           <i class="fa fa-paperclip"></i>
           <span class="file-name" id="i-fname">Seleccionar imagen o PDF</span>
-          <input type="file" id="i-file" accept="image/*,.pdf" onchange="setFN(this,'i-fname')">
+          <input type="file" id="i-file" accept="image/*,.pdf" multiple onchange="setFN(this,'i-fname')">
         </label>
       </div>
       <button class="btn-primary" id="btn-inc" onclick="reportarInconveniente()">
@@ -472,7 +472,7 @@ textarea.inp{resize:vertical;min-height:80px}
         <label class="file-label" for="r-file">
           <i class="fa fa-paperclip"></i>
           <span class="file-name" id="r-fname">Seleccionar imagen o PDF</span>
-          <input type="file" id="r-file" accept="image/*,.pdf" onchange="setFN(this,'r-fname')">
+          <input type="file" id="r-file" accept="image/*,.pdf" multiple onchange="setFN(this,'r-fname')">
         </label>
       </div>
       <button class="btn-primary" id="btn-rev" onclick="enviarRevision()">
@@ -613,7 +613,7 @@ textarea.inp{resize:vertical;min-height:80px}
 
 <script>
 // ── CONFIG ──────────────────────────────────────────────────────
-const ASU = "https://script.google.com/macros/s/AKfycbxFSi5hsh_x0PyTOWcpsIik5AFaFAd4rO6RD12cjAaIQod89oiIT5tXufbuS0bEwxmo/exec";
+const ASU = "https://script.google.com/macros/s/AKfycbzgD2kdK7JbyziK7YUyqXu1HeopxLuM8At1FXLoulqWDewsJIzohf8a--0WAEN8Kzde/exec";
 const PWD = "1ncent1vosCoris#peru";
 
 // ⚠️ Reemplaza con las URLs de tus Google Forms de Perú:
@@ -715,11 +715,10 @@ function nav(id,btn){
 
 // ── HELPERS ─────────────────────────────────────────────────────
 const v=id=>(document.getElementById(id)?.value||'').trim();
-function setFN(inp,lid){document.getElementById(lid).textContent=inp.files[0]?.name||'Seleccionar archivo';}
-function msg(id,type,text){
-  const el=document.getElementById(id); if(!el)return;
-  el.className='msg-box '+type; el.textContent=text;
-  if(type!=='load')setTimeout(()=>{el.className='msg-box';el.textContent='';},8000);
+function setFN(inp,lid){
+  var n=inp.files.length;
+  var txt=n===0?'Seleccionar archivo':n===1?inp.files[0].name:n+' archivos seleccionados';
+  document.getElementById(lid).textContent=txt;
 }
 async function toB64(file){
   return new Promise((res,rej)=>{
@@ -728,6 +727,16 @@ async function toB64(file){
     r.onerror=()=>rej(new Error('Error leyendo archivo'));
     r.readAsDataURL(file);
   });
+}
+async function toB64All(fileInput){
+  const files=Array.from(fileInput.files).slice(0,5);
+  if(!files.length) return [];
+  return Promise.all(files.map(f=>new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>res({fileData:e.target.result.split(',')[1],fileName:f.name,fileType:f.type});
+    r.onerror=()=>rej(new Error('Error leyendo '+f.name));
+    r.readAsDataURL(f);
+  })));
 }
 async function api(payload){
   if(!ASU||ASU.includes('PENDIENTE'))throw new Error('URL del Apps Script no configurada.');
@@ -812,8 +821,8 @@ async function solicitarTarjeta(){
   if(!ejec||!dni||!ag||!correo||!file){msg('s-msg','err','Todos los campos son obligatorios.');return;}
   btnLoad('btn-sol');
   try{
-    const b64=await toB64(file);
-    const d=await api({action:'solicitud',ejecutiva:ejec,dni,agencia:ag,correo,fileData:b64,fileName:file.name,fileType:file.type});
+    const b64=await toB64(document.getElementById('s-file').files[0]);
+    const d=await api({action:'solicitud',ejecutiva:ejec,dni,agencia:ag,correo,fileData:b64,fileName:document.getElementById('s-file').files[0].name,fileType:document.getElementById('s-file').files[0].type});
     if(d.ok){
       msg('s-msg','ok','¡Solicitud enviada exitosamente! ✅');
       clr('s-ejec','s-dni','s-ag','s-correo');
@@ -832,8 +841,8 @@ async function registrarEntrega(){
   if(!/^\d{6}$/.test(dig)){msg('e-msg','err','Los últimos 6 dígitos deben ser exactamente 6 números.');return;}
   btnLoad('btn-ent','Registrando...');
   try{
-    const b64=await toB64(file);
-    const d=await api({action:'entrega',ejecutiva:ejec,nombre,dni,agencia:ag,correo,ultimosDigitos:dig,fileData:b64,fileName:file.name,fileType:file.type});
+    const b64=await toB64(document.getElementById('e-file').files[0]);
+    const d=await api({action:'entrega',ejecutiva:ejec,nombre,dni,agencia:ag,correo,ultimosDigitos:dig,fileData:b64,fileName:document.getElementById('e-file').files[0].name,fileType:document.getElementById('e-file').files[0].type});
     if(d.ok){
       msg('e-msg','ok','¡Entrega registrada exitosamente! ✅');
       clr('e-ejec','e-nombre','e-dni','e-ag','e-correo','e-dig');
@@ -860,7 +869,8 @@ async function reportarInconveniente(){
   btnLoad('btn-inc','Enviando reporte...');
   try{
     const payload={action:'inconveniente',tipo:tipoInc,ultimosDigitos:dig,nombre,dni,usuario,agencia:ag,ejecutiva:ejec};
-    if(file){payload.fileData=await toB64(file);payload.fileName=file.name;payload.fileType=file.type;}
+    const iFiles=await toB64All(document.getElementById('i-file'));
+    if(iFiles.length) payload.files=iFiles;
     const d=await api(payload);
     if(d.ok){
       msg('i-msg','ok','¡Reporte enviado exitosamente! ✅');
@@ -890,7 +900,8 @@ async function enviarRevision(){
   btnLoad('btn-rev','Enviando revisión...');
   try{
     const payload={action:'revision',ejecutiva:ejec,nombre,dni,correo,tieneTarjeta,ultimosDigitos:dig,tieneVentas,observacion:obs};
-    if(file){payload.fileData=await toB64(file);payload.fileName=file.name;payload.fileType=file.type;}
+    const rFiles=await toB64All(document.getElementById('r-file'));
+    if(rFiles.length) payload.files=rFiles;
     const d=await api(payload);
     if(d.ok){
       msg('r-msg','ok','¡Revisión enviada exitosamente! ✅');
